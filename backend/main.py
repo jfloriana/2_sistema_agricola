@@ -146,7 +146,8 @@ async def solicitar_recuperacion(req: SolicitarRecuperacionRequest, db: Session 
     db.commit()
     
     # Construir el enlace de recuperación
-    reset_link = f"http://localhost:3000/restablecer-password/{token_str}"
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    reset_link = f"{frontend_url}/restablecer-password/{token_str}"
     
     # Configurar el mensaje de correo
     message = MessageSchema(
