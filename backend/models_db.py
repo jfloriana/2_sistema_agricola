@@ -38,6 +38,9 @@ class TokenRecuperacion(Base):
 
 class Pronostico(Base):
     __tablename__ = "pronosticos"
+    __table_args__ = (
+        UniqueConstraint("id_cultivo", "mes_objetivo", "anio_objetivo", name="uq_pronostico_mes"),
+    )
     id_pronostico = Column(Integer, primary_key=True, index=True)
     id_cultivo = Column(Integer, ForeignKey("cultivos.id_cultivo"), nullable=False)
     mes_objetivo = Column(Integer, nullable=False)
@@ -49,4 +52,3 @@ class Pronostico(Base):
     fecha_creacion = Column(DateTime, server_default=func.now())
 
     cultivo = relationship("Cultivo")
-    UniqueConstraint("id_cultivo", "mes_objetivo", "anio_objetivo", name="uq_pronostico_mes")
