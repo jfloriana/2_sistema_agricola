@@ -1,16 +1,9 @@
 # Python
 venv/
 __pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-build/
-
-# Environment
 .env
-
-# Node
 node_modules/
+*.pkl
 
 # IDE
 .vscode/

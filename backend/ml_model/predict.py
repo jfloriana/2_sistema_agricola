@@ -31,22 +31,23 @@ def predecir_precio(temperatura, precipitacion, transporte):
     """
     Realiza una predicción con los factores externos.
     """
-    if not os.path.exists(MODEL_PATH):
-        # Si no hay modelo entrenado, usamos una lógica base para no fallar
-        precio_base = 1500 + (transporte * 1.2) - (precipitacion * 0.5)
-        return round(precio_base, 2)
+    try:
+        if os.path.exists(MODEL_PATH):
+            with open(MODEL_PATH, 'rb') as f:
+                modelo = pickle.load(f)
+            datos_entrada = pd.DataFrame({
+                'temperatura_promedio': [temperatura],
+                'precipitacion_mm': [precipitacion],
+                'costo_transporte': [transporte]
+            })
+            prediccion = modelo.predict(datos_entrada)
+            return round(prediccion[0], 2)
+    except Exception:
+        pass
 
-    with open(MODEL_PATH, 'rb') as f:
-        modelo = pickle.load(f)
-
-    datos_entrada = pd.DataFrame({
-        'temperatura_promedio': [temperatura],
-        'precipitacion_mm': [precipitacion],
-        'costo_transporte': [transporte]
-    })
-
-    prediccion = modelo.predict(datos_entrada)
-    return round(prediccion[0], 2)
+    # Fallback si no hay modelo o falla al cargar
+    precio_base = 1500 + (transporte * 1.2) - (precipitacion * 0.5)
+    return round(precio_base, 2)
 
 def estimar_produccion(id_cultivo, area_hectareas):
     """
