@@ -135,10 +135,10 @@ async def solicitar_recuperacion(req: SolicitarRecuperacionRequest, db: Session 
     
     # Enviar correo vía Brevo API (HTTP, no bloqueado por Render)
     brevo_key = os.getenv("BREVO_API_KEY")
-    mail_from = os.getenv("MAIL_FROM")
-    mail_from_name = os.getenv("MAIL_FROM_NAME", "Sistema AgroJequete")
+    brevo_from = os.getenv("BREVO_FROM")
+    brevo_from_name = os.getenv("BREVO_FROM_NAME", "Sistema AgroJequete")
 
-    if brevo_key and mail_from:
+    if brevo_key and brevo_from:
         try:
             html_body = f"""
             <html>
@@ -164,7 +164,7 @@ async def solicitar_recuperacion(req: SolicitarRecuperacionRequest, db: Session 
                         "Content-Type": "application/json"
                     },
                     json={
-                        "sender": {"name": mail_from_name, "email": mail_from},
+                        "sender": {"name": brevo_from_name, "email": brevo_from},
                         "to": [{"email": req.correo}],
                         "subject": "Recuperación de Contraseña - AgroJequete",
                         "htmlContent": html_body
