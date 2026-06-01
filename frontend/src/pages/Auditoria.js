@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -23,9 +23,9 @@ export default function Auditoria() {
 
   const cargarDatos = async () => {
     try {
-      const resLogs = await axios.get('http://localhost:8000/api/auditoria/');
+      const resLogs = await api.get('/auditoria/');
       setLogs(resLogs.data);
-      const resStats = await axios.get('http://localhost:8000/api/auditoria/visitas/stats');
+      const resStats = await api.get('/auditoria/visitas/stats');
       setStats(resStats.data.reverse()); // Orden cronológico para el gráfico
       consultarVisitasDia(fechaConsulta);
     } catch (error) {
@@ -35,7 +35,7 @@ export default function Auditoria() {
 
   const consultarVisitasDia = async (fecha) => {
     try {
-      const res = await axios.get(`http://localhost:8000/api/auditoria/visitas/diarias?fecha=${fecha}`);
+      const res = await api.get(`/auditoria/visitas/diarias?fecha=${fecha}`);
       setVisitasDia(res.data.total_visitas);
     } catch (error) {
       console.error("Error al consultar visitas", error);

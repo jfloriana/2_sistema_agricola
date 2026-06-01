@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 export default function GestionUsuarios() {
   const navigate = useNavigate();
@@ -25,7 +25,7 @@ export default function GestionUsuarios() {
 
   const cargarUsuarios = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/usuarios/');
+      const res = await api.get('/usuarios/');
       setUsuarios(res.data);
     } catch (error) {
       console.error("Error al cargar usuarios", error);
@@ -36,10 +36,10 @@ export default function GestionUsuarios() {
     e.preventDefault();
     try {
       if (idEnEdicion) {
-        await axios.put(`http://localhost:8000/api/usuarios/${idEnEdicion}`, nuevoUsuario);
+        await api.put(`/usuarios/${idEnEdicion}`, nuevoUsuario);
         setIdEnEdicion(null);
       } else {
-        await axios.post('http://localhost:8000/api/usuarios/', nuevoUsuario);
+        await api.post('/usuarios/', nuevoUsuario);
       }
       setNuevoUsuario({ nombres: '', apellidos: '', correo: '', rol: 'Usuario', estado: true, contrasena: '' });
       cargarUsuarios();
@@ -64,7 +64,7 @@ export default function GestionUsuarios() {
   const eliminarUsuario = async (id) => {
     if(window.confirm("¿Estás seguro de eliminar este usuario?")) {
       try {
-        await axios.delete(`http://localhost:8000/api/usuarios/${id}`);
+        await api.delete(`/usuarios/${id}`);
         cargarUsuarios();
       } catch (error) {
         alert("Error al eliminar el usuario.");

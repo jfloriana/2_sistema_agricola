@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 export default function GestionCultivos() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export default function GestionCultivos() {
 
   const cargarCultivos = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/cultivos/');
+      const res = await api.get('/cultivos/');
       setCultivos(res.data);
     } catch (error) {
       console.error("Error al cargar cultivos", error);
@@ -34,10 +34,10 @@ export default function GestionCultivos() {
     e.preventDefault();
     try {
       if (idEnEdicion) {
-        await axios.put(`http://localhost:8000/api/cultivos/${idEnEdicion}`, nuevoCultivo);
+        await api.put(`/cultivos/${idEnEdicion}`, nuevoCultivo);
         setIdEnEdicion(null);
       } else {
-        await axios.post('http://localhost:8000/api/cultivos/', nuevoCultivo);
+        await api.post('/cultivos/', nuevoCultivo);
       }
       setNuevoCultivo({ nombre_cultivo: '', tiempo_estimado_cosecha_dias: '' });
       cargarCultivos();
@@ -58,7 +58,7 @@ export default function GestionCultivos() {
   const eliminarCultivo = async (id) => {
     if(window.confirm("¿Estás seguro de eliminar este cultivo?")) {
       try {
-        await axios.delete(`http://localhost:8000/api/cultivos/${id}`);
+        await api.delete(`/cultivos/${id}`);
         cargarCultivos();
       } catch (error) {
         alert("No se puede eliminar porque tiene datos históricos asociados.");

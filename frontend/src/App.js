@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from './services/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useNavigate, Routes, Route, useLocation } from 'react-router-dom';
@@ -34,7 +34,7 @@ function App() {
         // Marcamos inmediatamente para evitar que ejecuciones paralelas (StrictMode) pasen el IF
         sessionStorage.setItem('visitaRegistrada', 'pendiente'); 
         
-        axios.post(`http://localhost:8000/api/auditoria/track-visit?id_usuario=${usr.id_usuario}`)
+        api.post(`/auditoria/track-visit?id_usuario=${usr.id_usuario}`)
           .then(() => {
             sessionStorage.setItem('visitaRegistrada', 'true');
           })
@@ -105,7 +105,7 @@ function Dashboard() {
 
   const cargarRecomendaciones = async (meses) => {
     try {
-      const res = await axios.get(`http://localhost:8000/api/prediccion/recomendacion-siembra?meses_futuro=${meses}`);
+      const res = await api.get(`/prediccion/recomendacion-siembra?meses_futuro=${meses}`);
       setRecomendaciones(res.data);
     } catch (error) {
       console.error("Error cargando recomendaciones", error);
@@ -114,7 +114,7 @@ function Dashboard() {
 
   const consultarRiesgoPlaga = async () => {
     try {
-      const res = await axios.post(`http://localhost:8000/api/prediccion/riesgo-plaga?id_cultivo=${parametros.id_cultivo}&meses_futuro=${parametros.meses_futuro}`);
+      const res = await api.post(`/prediccion/riesgo-plaga?id_cultivo=${parametros.id_cultivo}&meses_futuro=${parametros.meses_futuro}`);
       setRiesgoPlaga(res.data);
     } catch (error) {
       console.error("Error consultando riesgo plaga", error);
@@ -123,9 +123,9 @@ function Dashboard() {
 
   const cargarDatosGrafico = async () => {
     try {
-      const resRendimiento = await axios.get('http://localhost:8000/api/reportes/rendimiento-mensual');
+      const resRendimiento = await api.get('/reportes/rendimiento-mensual');
       setDatosGrafico(resRendimiento.data);
-      const resCalidad = await axios.get('http://localhost:8000/api/reportes/calidad-cosechas');
+      const resCalidad = await api.get('/reportes/calidad-cosechas');
       setDatosCalidad(resCalidad.data);
     } catch (error) {
       console.error("Error al cargar gráficos", error);
@@ -134,7 +134,7 @@ function Dashboard() {
 
   const cargarCultivos = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/cultivos/');
+      const res = await api.get('/cultivos/');
       setCultivos(res.data);
       if (res.data.length > 0) {
         setParametros(prev => ({ ...prev, id_cultivo: res.data[0].id_cultivo }));
@@ -230,7 +230,7 @@ function Dashboard() {
 
   const calcularPrediccionAvanzada = async () => {
     try {
-      const res = await axios.post(`http://localhost:8000/api/prediccion/avanzada?id_cultivo=${parametros.id_cultivo}&hectareas=${parametros.hectareas}&meses_futuro=${parametros.meses_futuro}&trans=${parametros.trans}&id_usuario=${usuario.id_usuario}`);
+      const res = await api.post(`/prediccion/avanzada?id_cultivo=${parametros.id_cultivo}&hectareas=${parametros.hectareas}&meses_futuro=${parametros.meses_futuro}&trans=${parametros.trans}&id_usuario=${usuario.id_usuario}`);
       setResultadoAvanzado(res.data);
       setClimaAsumido(res.data.clima_asumido);
       setMostrarBotonDescarga(true);
@@ -240,12 +240,12 @@ function Dashboard() {
   };
 
   const descargarReporte = () => {
-    window.open('http://localhost:8000/api/reportes/cosechas/csv', '_blank');
+    window.open(`${api.defaults.baseURL}/reportes/cosechas/csv`, '_blank');
   };
 
   const descargarPDF = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/reportes/cosechas/json');
+      const res = await api.get('/reportes/cosechas/json');
       const doc = new jsPDF();
       doc.text("Reporte Operacional de Cosechas", 14, 22);
       const tableRows = res.data.map(row => [row.fecha, row.rendimiento, row.calidad]);

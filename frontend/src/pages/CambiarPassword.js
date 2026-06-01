@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import './Login.css';
 
@@ -16,7 +16,7 @@ function CambiarPassword() {
   useEffect(() => {
     const validarToken = async () => {
       try {
-        await axios.get(`http://localhost:8000/api/auth/validar-token/${token}`);
+        await api.get(`/auth/validar-token/${token}`);
         setTokenValido(true);
       } catch (err) {
         setTokenValido(false);
@@ -35,7 +35,7 @@ function CambiarPassword() {
     }
     
     try {
-      const res = await axios.post('http://localhost:8000/api/auth/restablecer-password', {
+      const res = await api.post('/auth/restablecer-password', {
         token,
         nueva_contrasena: nuevaContrasena
       });

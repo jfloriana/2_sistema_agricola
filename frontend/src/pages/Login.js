@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { useNavigate, Link } from 'react-router-dom';
 import './Login.css';
 
@@ -22,7 +22,7 @@ function Login() {
     
     try {
       if (esLogin) {
-        const res = await axios.post('http://localhost:8000/api/auth/login', {
+        const res = await api.post('/auth/login', {
           correo: datos.correo,
           contrasena: datos.contrasena
         });
@@ -30,7 +30,7 @@ function Login() {
         sessionStorage.removeItem('visitaRegistrada');
         navigate('/');
       } else {
-        await axios.post('http://localhost:8000/api/auth/registrar', datos);
+        await api.post('/auth/registrar', datos);
         setMensaje('Registro exitoso. Ahora puedes iniciar sesión.');
         setEsLogin(true);
       }
