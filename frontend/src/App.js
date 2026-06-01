@@ -113,11 +113,16 @@ function Dashboard() {
   };
 
   const consultarRiesgoPlaga = async () => {
+    if (!parametros.id_cultivo) {
+      alert("Selecciona un cultivo primero.");
+      return;
+    }
     try {
       const res = await api.post(`/prediccion/riesgo-plaga?id_cultivo=${parametros.id_cultivo}&meses_futuro=${parametros.meses_futuro}`);
       setRiesgoPlaga(res.data);
     } catch (error) {
       console.error("Error consultando riesgo plaga", error);
+      alert("Error: " + (JSON.stringify(error.response?.data) || error.message));
     }
   };
 
@@ -141,6 +146,7 @@ function Dashboard() {
       }
     } catch (error) {
       console.error("Error al cargar cultivos", error);
+      alert("Error al cargar cultivos: " + (JSON.stringify(error.response?.data) || error.message));
     }
   };
 
@@ -229,6 +235,14 @@ function Dashboard() {
   };
 
   const calcularPrediccionAvanzada = async () => {
+    if (!parametros.id_cultivo) {
+      alert("Selecciona un cultivo primero.");
+      return;
+    }
+    if (!usuario?.id_usuario) {
+      alert("Inicia sesión primero.");
+      return;
+    }
     try {
       const res = await api.post(`/prediccion/avanzada?id_cultivo=${parametros.id_cultivo}&hectareas=${parametros.hectareas}&meses_futuro=${parametros.meses_futuro}&trans=${parametros.trans}&id_usuario=${usuario.id_usuario}`);
       setResultadoAvanzado(res.data);
