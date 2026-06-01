@@ -171,10 +171,14 @@ async def solicitar_recuperacion(req: SolicitarRecuperacionRequest, db: Session 
                     }
                 )
                 if resp.is_success:
-                    print(f"--- CORREO ENVIADO OK a {req.correo} ---")
+                    print(f"--- CORREO ENVIADO OK a {req.correo} (status {resp.status_code}) ---")
+                    try:
+                        print(f"--- BREVO RESPONSE: {resp.text[:500]} ---")
+                    except Exception:
+                        pass
                     return {"mensaje": "Se ha enviado un enlace de recuperación a tu correo electrónico."}
                 else:
-                    print(f"--- ERROR BREVO ({resp.status_code}): {resp.text} ---")
+                    print(f"--- ERROR BREVO ({resp.status_code}): {resp.text[:500]} ---")
         except Exception as e:
             print(f"--- ERROR AL ENVIAR CORREO: {e} ---")
 
