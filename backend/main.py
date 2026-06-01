@@ -54,11 +54,10 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="API Sistema Inteligente Agrícola - Valle Jequetepeque")
 
-# Configuración de CORS para permitir que React (Puerto 3000) se comunique con FastAPI (Puerto 8000)
+# Configuración de CORS para permitir que React se comunique con FastAPI
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción se cambia por la URL exacta del frontend
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
