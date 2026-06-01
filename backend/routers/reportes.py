@@ -5,6 +5,8 @@ from sqlalchemy import text
 from fastapi.responses import StreamingResponse
 import io
 import csv
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
 
 router = APIRouter(prefix="/api/reportes", tags=["Reportes"])
 
@@ -30,6 +32,46 @@ def exportar_cosechas_csv(db: Session = Depends(get_db)):
         iter([output.getvalue()]), 
         media_type="text/csv", 
         headers={"Content-Disposition": "attachment; filename=reporte_cosechas.csv"}
+    )
+
+@router.get("/cosechas/excel")
+def exportar_cosechas_excel(db: Session = Depends(get_db)):
+    query = text("SELECT c.fecha_cosecha, c.rendimiento_toneladas, c.calidad FROM cosechas c ORDER BY c.fecha_cosecha DESC")
+    resultados = db.execute(query).fetchall()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Cosechas"
+
+    headers = ["Fecha Cosecha", "Rendimiento (Ton)", "Calidad"]
+    header_font = Font(bold=True, color="FFFFFF")
+    header_align = Alignment(horizontal="center")
+
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.alignment = header_align
+
+    for row_idx, row in enumerate(resultados, 2):
+        ws.cell(row=row_idx, column=1, value=str(row.fecha_cosecha))
+        ws.cell(row=row_idx, column=2, value=float(row.rendimiento_toneladas))
+        ws.cell(row=row_idx, column=3, value=row.calidad)
+
+    ws.column_dimensions["A"].width = 18
+    ws.column_dimensions["B"].width = 20
+    ws.column_dimensions["C"].width = 15
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    db.execute(text("INSERT INTO bitacora_sucesos (id_usuario, modulo, accion) VALUES (1, 'Reportes', 'Exportación Excel generada')"))
+    db.commit()
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=reporte_cosechas.xlsx"}
     )
 
 @router.get("/rendimiento-mensual")

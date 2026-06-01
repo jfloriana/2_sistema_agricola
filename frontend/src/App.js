@@ -258,6 +258,10 @@ function Dashboard() {
     window.open(`${api.defaults.baseURL}/reportes/cosechas/csv`, '_blank');
   };
 
+  const descargarExcel = () => {
+    window.open(`${api.defaults.baseURL}/reportes/cosechas/excel`, '_blank');
+  };
+
   const descargarPDF = async () => {
     try {
       const res = await api.get('/reportes/cosechas/json');
@@ -451,6 +455,7 @@ function Dashboard() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <button onClick={descargarPDF} style={{...btnStyle, background: 'linear-gradient(to right, #e53935, #c62828)'}}>Exportar PDF</button>
               <button onClick={descargarReporte} style={{...btnStyle, background: 'linear-gradient(to right, #1b5e20, #43a047)'}}>Exportar CSV</button>
+              <button onClick={descargarExcel} style={{...btnStyle, background: 'linear-gradient(to right, #1565c0, #1976d2)'}}>Exportar Excel</button>
             </div>
           </div>
         )}
