@@ -236,6 +236,7 @@ function Dashboard() {
       setMostrarBotonDescarga(true);
     } catch (error) {
       console.error("Error conectando al backend predictivo", error);
+      alert("Error: " + (error.response?.data?.detail || error.message));
     }
   };
 
