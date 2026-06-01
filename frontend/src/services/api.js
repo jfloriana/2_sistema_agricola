@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configuración base. Aquí pones la URL de tu backend en FastAPI
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api',
+  baseURL: process.env.REACT_APP_API_URL || 'https://sistema-agricola-backend.onrender.com/api',
 });
 
 // Exportamos todas las funciones que se comunican con el backend
