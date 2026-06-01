@@ -54,7 +54,7 @@ function RecuperarPassword() {
 
         {debugLink && (
           <div style={{ marginTop: '20px', padding: '10px', background: '#fff9c4', borderRadius: '8px', fontSize: '0.8rem' }}>
-            <strong>DEBUG: Enlace generado (simulación de correo):</strong><br/>
+            <strong>Enlace de recuperación:</strong><br/>
             <a href={debugLink}>{debugLink}</a>
           </div>
         )}

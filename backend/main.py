@@ -8,27 +8,13 @@ from fastapi import HTTPException
 from passlib.context import CryptContext
 import secrets
 from datetime import datetime, timedelta
-from fastapi_mail import FastMail, ConnectionConfig, MessageSchema, MessageType
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, Email, To, Content
 from dotenv import load_dotenv
 import os
 
 # Cargar variables de entorno
 load_dotenv()
-
-# Configuración de correo (se cargará dinámicamente)
-def get_mail_config():
-    return ConnectionConfig(
-        MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-        MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-        MAIL_FROM=os.getenv("MAIL_FROM"),
-        MAIL_PORT=int(os.getenv("MAIL_PORT", 587)),
-        MAIL_SERVER=os.getenv("MAIL_SERVER"),
-        MAIL_FROM_NAME=os.getenv("MAIL_FROM_NAME"),
-        MAIL_STARTTLS=os.getenv("MAIL_STARTTLS", "True") == "True",
-        MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS", "False") == "True",
-        USE_CREDENTIALS=os.getenv("USE_CREDENTIALS", "True") == "True",
-        VALIDATE_CERTS=os.getenv("VALIDATE_CERTS", "True") == "True"
-    )
 
 # Importar configuración de la base de datos
 from database import engine, Base, get_db
@@ -148,42 +134,57 @@ async def solicitar_recuperacion(req: SolicitarRecuperacionRequest, db: Session 
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
     reset_link = f"{frontend_url}/restablecer-password/{token_str}"
     
-    # Configurar el mensaje de correo
-    message = MessageSchema(
-        subject="Recuperación de Contraseña - AgroJequete",
-        recipients=[req.correo],
-        body=f"""
-        <html>
-            <body style="font-family: sans-serif; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                    <h2 style="color: #2e7d32;">Hola, {user.nombres}</h2>
-                    <p>Has solicitado restablecer tu contraseña en el Sistema AgroJequete.</p>
-                    <p>Haz clic en el siguiente botón para continuar:</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="{reset_link}" style="background-color: #2e7d32; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Restablecer Contraseña</a>
-                    </div>
-                    <p style="font-size: 0.8rem; color: #777;">Este enlace expirará en 15 minutos.</p>
-                    <p style="font-size: 0.8rem; color: #777;">Si no solicitaste este cambio, puedes ignorar este correo.</p>
-                </div>
-            </body>
-        </html>
-        """,
-        subtype=MessageType.html
-    )
+    # Configurar y enviar el correo vía SendGrid HTTP API
+    sg_api_key = os.getenv("SENDGRID_API_KEY")
+    mail_from = os.getenv("MAIL_FROM")
+    mail_from_name = os.getenv("MAIL_FROM_NAME", "Sistema AgroJequete")
 
-    fm = FastMail(get_mail_config())
-    try:
-        await fm.send_message(message)
-        return {"mensaje": "Se ha enviado un enlace de recuperación a tu correo electrónico."}
-    except Exception as e:
-        import traceback
-        error_detallado = traceback.format_exc()
-        print(f"--- ERROR CRÍTICO DE CORREO ---")
-        print(error_detallado)
-        print(f"-------------------------------")
+    if sg_api_key and mail_from:
+        try:
+            message = Mail(
+                from_email=Email(mail_from, mail_from_name),
+                to_emails=To(req.correo),
+                subject="Recuperación de Contraseña - AgroJequete",
+                html_content=Content("text/html", f"""
+                    <html>
+                        <body style="font-family: sans-serif; color: #333;">
+                            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                                <h2 style="color: #2e7d32;">Hola, {user.nombres}</h2>
+                                <p>Has solicitado restablecer tu contraseña en el Sistema AgroJequete.</p>
+                                <p>Haz clic en el siguiente botón para continuar:</p>
+                                <div style="text-align: center; margin: 30px 0;">
+                                    <a href="{reset_link}" style="background-color: #2e7d32; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Restablecer Contraseña</a>
+                                </div>
+                                <p style="font-size: 0.8rem; color: #777;">Este enlace expirará en 15 minutos.</p>
+                                <p style="font-size: 0.8rem; color: #777;">Si no solicitaste este cambio, puedes ignorar este correo.</p>
+                            </div>
+                        </body>
+                    </html>
+                """)
+            )
+            sg = SendGridAPIClient(sg_api_key)
+            response = sg.send(message)
+            if response.status_code in (200, 201, 202):
+                return {"mensaje": "Se ha enviado un enlace de recuperación a tu correo electrónico."}
+            else:
+                print(f"--- ERROR SENGRID (status {response.status_code}) ---")
+                return {
+                    "mensaje": "Error al enviar el correo. Intenta de nuevo más tarde.",
+                    "link_debug": reset_link
+                }
+        except Exception as e:
+            print(f"--- ERROR AL ENVIAR CORREO ---")
+            print(str(e))
+            print(f"-------------------------------")
+            return {
+                "mensaje": "Error al enviar el correo. Intenta de nuevo más tarde.",
+                "link_debug": reset_link
+            }
+    else:
+        # Sin API key configurada — devolver link directo
         return {
-            "mensaje": f"Error técnico al enviar correo: {str(e)}. El servidor SMTP rechazó la conexión. Verifica tu .env.",
-            "link_debug": reset_link 
+            "mensaje": "Correo no disponible. Usa el enlace directo para restablecer tu contraseña.",
+            "link_debug": reset_link
         }
 
 @app.post("/api/auth/restablecer-password")
