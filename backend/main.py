@@ -302,6 +302,34 @@ def obtener_prediccion_avanzada(id_cultivo: int, hectareas: float, meses_futuro:
         
         registrar_bitacora(db, id_usuario, "Predicción Avanzada", f"Proyección completa para {hectareas}ha. Ganancia: S/{rentabilidad_neta:.2f}")
         
+        anio_actual = datetime.now().year
+        anio_objetivo = anio_actual + (1 if mes_actual + meses_futuro > 12 else 0)
+        
+        try:
+            existe = db.query(models_db.Pronostico).filter(
+                models_db.Pronostico.id_cultivo == id_cultivo,
+                models_db.Pronostico.mes_objetivo == mes_objetivo,
+                models_db.Pronostico.anio_objetivo == anio_objetivo
+            ).first()
+            if existe:
+                existe.hectareas = hectareas
+                existe.produccion_estimada = round(produccion_total, 2)
+                existe.precio_unidad = round(precio_tonelada, 2)
+                existe.ganancia_neta = round(rentabilidad_neta, 2)
+            else:
+                db.add(models_db.Pronostico(
+                    id_cultivo=id_cultivo,
+                    mes_objetivo=mes_objetivo,
+                    anio_objetivo=anio_objetivo,
+                    hectareas=hectareas,
+                    produccion_estimada=round(produccion_total, 2),
+                    precio_unidad=round(precio_tonelada, 2),
+                    ganancia_neta=round(rentabilidad_neta, 2)
+                ))
+            db.commit()
+        except Exception:
+            db.rollback()
+        
         return {
             "produccion_estimada": round(produccion_total, 2),
             "precio_unidad": round(precio_tonelada, 2),

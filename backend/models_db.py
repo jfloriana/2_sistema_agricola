@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from database import Base
 
 class Usuario(Base):
@@ -34,3 +35,18 @@ class TokenRecuperacion(Base):
     token = Column(String(255), unique=True, index=True)
     expiracion = Column(DateTime, nullable=False)
     usado = Column(Boolean, default=False)
+
+class Pronostico(Base):
+    __tablename__ = "pronosticos"
+    id_pronostico = Column(Integer, primary_key=True, index=True)
+    id_cultivo = Column(Integer, ForeignKey("cultivos.id_cultivo"), nullable=False)
+    mes_objetivo = Column(Integer, nullable=False)
+    anio_objetivo = Column(Integer, nullable=False)
+    hectareas = Column(Float)
+    produccion_estimada = Column(Float)
+    precio_unidad = Column(Float)
+    ganancia_neta = Column(Float)
+    fecha_creacion = Column(DateTime, server_default=func.now())
+
+    cultivo = relationship("Cultivo")
+    UniqueConstraint("id_cultivo", "mes_objetivo", "anio_objetivo", name="uq_pronostico_mes")

@@ -280,9 +280,15 @@ function Dashboard() {
     }
   };
 
-  const cultivosConDatos = Array.from(new Set(
-    datosGrafico.flatMap(dato => Object.keys(dato).filter(key => key !== 'mes'))
+  const cultivosReales = Array.from(new Set(
+    datosGrafico.flatMap(dato => Object.keys(dato).filter(key => key !== 'mes' && !key.endsWith('_pronostico')))
   ));
+
+  const cultivosPronostico = Array.from(new Set(
+    datosGrafico.flatMap(dato => Object.keys(dato).filter(key => key.endsWith('_pronostico')))
+  ));
+
+  const cultivosConDatos = [...cultivosReales, ...cultivosPronostico.map(k => k.replace('_pronostico', ''))];
 
   const toggleCultivo = (cultivo) => {
     if (cultivosOcultos.includes(cultivo)) {
@@ -474,8 +480,11 @@ function Dashboard() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                {cultivosConDatos.map((cultivo, index) => (
+                {cultivosReales.map((cultivo, index) => (
                   <Bar key={cultivo} dataKey={cultivo} fill={COLORES_BAR[index % COLORES_BAR.length]} name={cultivo} />
+                ))}
+                {cultivosPronostico.map((cultivo, index) => (
+                  <Bar key={cultivo} dataKey={cultivo} fill={COLORES_BAR[index % COLORES_BAR.length]} fillOpacity={0.35} name={cultivo.replace('_pronostico', ' (P)')} stroke={COLORES_BAR[index % COLORES_BAR.length]} strokeDasharray="4 3" />
                 ))}
               </BarChart>
             </ResponsiveContainer>
