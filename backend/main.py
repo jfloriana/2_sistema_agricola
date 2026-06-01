@@ -280,37 +280,40 @@ def obtener_prediccion(meses_futuro: int, trans: float, id_usuario: int = 1, db:
 # ==========================================
 @app.post("/api/prediccion/avanzada")
 def obtener_prediccion_avanzada(id_cultivo: int, hectareas: float, meses_futuro: int, trans: float, id_usuario: int = 1, db: Session = Depends(get_db)):
-    # 1. Obtener predicción de precio
-    mes_actual = datetime.now().month
-    mes_objetivo = (mes_actual + meses_futuro - 1) % 12 + 1
-    
-    if mes_objetivo in [1, 2, 3]: temp_estimada, prec_estimada = 28.5, 25.0
-    elif mes_objetivo in [4, 5, 6]: temp_estimada, prec_estimada = 24.0, 5.0
-    elif mes_objetivo in [7, 8, 9]: temp_estimada, prec_estimada = 20.0, 1.0
-    else: temp_estimada, prec_estimada = 23.0, 2.0
+    try:
+        # 1. Obtener predicción de precio
+        mes_actual = datetime.now().month
+        mes_objetivo = (mes_actual + meses_futuro - 1) % 12 + 1
         
-    precio_tonelada = predecir_precio(temp_estimada, prec_estimada, trans)
-    
-    # 2. Estimar Producción
-    produccion_total = estimar_produccion(id_cultivo, hectareas)
-    
-    # 3. Calcular Rentabilidad
-    ingresos_estimados = produccion_total * precio_tonelada
-    costo_por_ha = 5500.0 # Costo promedio de producción por hectárea
-    costos_totales = (hectareas * costo_por_ha) + (produccion_total * trans)
-    rentabilidad_neta = ingresos_estimados - costos_totales
-    
-    registrar_bitacora(db, id_usuario, "Predicción Avanzada", f"Proyección completa para {hectareas}ha. Ganancia: S/{rentabilidad_neta:.2f}")
-    
-    return {
-        "produccion_estimada": round(produccion_total, 2),
-        "precio_unidad": round(precio_tonelada, 2),
-        "ingresos_brutos": round(ingresos_estimados, 2),
-        "costos_estimados": round(costos_totales, 2),
-        "ganancia_neta": round(rentabilidad_neta, 2),
-        "clima_asumido": f"Temp: {temp_estimada}°C, Prec: {prec_estimada}mm",
-        "recomendacion": "Altamente Rentable" if rentabilidad_neta > (ingresos_estimados * 0.3) else "Rentabilidad Moderada"
-    }
+        if mes_objetivo in [1, 2, 3]: temp_estimada, prec_estimada = 28.5, 25.0
+        elif mes_objetivo in [4, 5, 6]: temp_estimada, prec_estimada = 24.0, 5.0
+        elif mes_objetivo in [7, 8, 9]: temp_estimada, prec_estimada = 20.0, 1.0
+        else: temp_estimada, prec_estimada = 23.0, 2.0
+            
+        precio_tonelada = predecir_precio(temp_estimada, prec_estimada, trans)
+        
+        # 2. Estimar Producción
+        produccion_total = estimar_produccion(id_cultivo, hectareas)
+        
+        # 3. Calcular Rentabilidad
+        ingresos_estimados = produccion_total * precio_tonelada
+        costo_por_ha = 5500.0 # Costo promedio de producción por hectárea
+        costos_totales = (hectareas * costo_por_ha) + (produccion_total * trans)
+        rentabilidad_neta = ingresos_estimados - costos_totales
+        
+        registrar_bitacora(db, id_usuario, "Predicción Avanzada", f"Proyección completa para {hectareas}ha. Ganancia: S/{rentabilidad_neta:.2f}")
+        
+        return {
+            "produccion_estimada": round(produccion_total, 2),
+            "precio_unidad": round(precio_tonelada, 2),
+            "ingresos_brutos": round(ingresos_estimados, 2),
+            "costos_estimados": round(costos_totales, 2),
+            "ganancia_neta": round(rentabilidad_neta, 2),
+            "clima_asumido": f"Temp: {temp_estimada}°C, Prec: {prec_estimada}mm",
+            "recomendacion": "Altamente Rentable" if rentabilidad_neta > (ingresos_estimados * 0.3) else "Rentabilidad Moderada"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==========================================
 # ENDPOINT: RIESGO DE PLAGAS (MEJORADO)
