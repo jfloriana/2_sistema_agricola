@@ -8,27 +8,12 @@ from fastapi import HTTPException
 from passlib.context import CryptContext
 import secrets
 from datetime import datetime, timedelta
-from fastapi_mail import FastMail, ConnectionConfig, MessageSchema, MessageType
 from dotenv import load_dotenv
 import os
+import httpx
 
 # Cargar variables de entorno
 load_dotenv()
-
-# Configuración de correo (SMTP)
-def get_mail_config():
-    return ConnectionConfig(
-        MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-        MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-        MAIL_FROM=os.getenv("MAIL_FROM"),
-        MAIL_PORT=int(os.getenv("MAIL_PORT", 587)),
-        MAIL_SERVER=os.getenv("MAIL_SERVER"),
-        MAIL_FROM_NAME=os.getenv("MAIL_FROM_NAME"),
-        MAIL_STARTTLS=os.getenv("MAIL_STARTTLS", "True") == "True",
-        MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS", "False") == "True",
-        USE_CREDENTIALS=os.getenv("USE_CREDENTIALS", "True") == "True",
-        VALIDATE_CERTS=os.getenv("VALIDATE_CERTS", "True") == "True"
-    )
 
 # Importar configuración de la base de datos
 from database import engine, Base, get_db
@@ -148,43 +133,56 @@ async def solicitar_recuperacion(req: SolicitarRecuperacionRequest, db: Session 
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
     reset_link = f"{frontend_url}/restablecer-password/{token_str}"
     
-    # Configurar el mensaje de correo
-    message = MessageSchema(
-        subject="Recuperación de Contraseña - AgroJequete",
-        recipients=[req.correo],
-        body=f"""
-        <html>
-            <body style="font-family: sans-serif; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                    <h2 style="color: #2e7d32;">Hola, {user.nombres}</h2>
-                    <p>Has solicitado restablecer tu contraseña en el Sistema AgroJequete.</p>
-                    <p>Haz clic en el siguiente botón para continuar:</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="{reset_link}" style="background-color: #2e7d32; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Restablecer Contraseña</a>
-                    </div>
-                    <p style="font-size: 0.8rem; color: #777;">Este enlace expirará en 15 minutos.</p>
-                    <p style="font-size: 0.8rem; color: #777;">Si no solicitaste este cambio, puedes ignorar este correo.</p>
-                </div>
-            </body>
-        </html>
-        """,
-        subtype=MessageType.html
-    )
+    # Enviar correo vía Brevo API (HTTP, no bloqueado por Render)
+    brevo_key = os.getenv("BREVO_API_KEY")
+    mail_from = os.getenv("MAIL_FROM")
+    mail_from_name = os.getenv("MAIL_FROM_NAME", "Sistema AgroJequete")
 
-    fm = FastMail(get_mail_config())
-    try:
-        await fm.send_message(message)
-        return {"mensaje": "Se ha enviado un enlace de recuperación a tu correo electrónico."}
-    except Exception as e:
-        import traceback
-        error_detallado = traceback.format_exc()
-        print(f"--- ERROR CRÍTICO DE CORREO ---")
-        print(error_detallado)
-        print(f"-------------------------------")
-        return {
-            "mensaje": f"El servidor SMTP no está disponible en Render. Usa el enlace directo.",
-            "link_debug": reset_link
-        }
+    if brevo_key and mail_from:
+        try:
+            html_body = f"""
+            <html>
+                <body style="font-family: sans-serif; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                        <h2 style="color: #2e7d32;">Hola, {user.nombres}</h2>
+                        <p>Has solicitado restablecer tu contraseña en el Sistema AgroJequete.</p>
+                        <p>Haz clic en el siguiente botón para continuar:</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="{reset_link}" style="background-color: #2e7d32; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Restablecer Contraseña</a>
+                        </div>
+                        <p style="font-size: 0.8rem; color: #777;">Este enlace expirará en 15 minutos.</p>
+                        <p style="font-size: 0.8rem; color: #777;">Si no solicitaste este cambio, puedes ignorar este correo.</p>
+                    </div>
+                </body>
+            </html>
+            """
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.post(
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers={
+                        "api-key": brevo_key,
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "sender": {"name": mail_from_name, "email": mail_from},
+                        "to": [{"email": req.correo}],
+                        "subject": "Recuperación de Contraseña - AgroJequete",
+                        "htmlContent": html_body
+                    }
+                )
+                if resp.is_success:
+                    print(f"--- CORREO ENVIADO OK a {req.correo} ---")
+                    return {"mensaje": "Se ha enviado un enlace de recuperación a tu correo electrónico."}
+                else:
+                    print(f"--- ERROR BREVO ({resp.status_code}): {resp.text} ---")
+        except Exception as e:
+            print(f"--- ERROR AL ENVIAR CORREO: {e} ---")
+
+    # Fallback: mostrar link directamente
+    return {
+        "mensaje": "No se pudo enviar el correo. Usa el enlace directo.",
+        "link_debug": reset_link
+    }
 
 @app.post("/api/auth/restablecer-password")
 def restablecer_password(req: RestablecerPasswordRequest, db: Session = Depends(get_db)):
